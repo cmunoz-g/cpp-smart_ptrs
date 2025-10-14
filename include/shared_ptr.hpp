@@ -5,11 +5,11 @@ namespace ptrs {
     template <typename T>
     class control_block { // add: custom allocator, deleter ? weak ref count ?
     private:
-        uint64_t count_;
+        long count_;
         //weak ref count_
     public:
         control_block(void) : count_(1) {}
-        uint64_t use_count(void) const noexcept { return count_; }
+        long use_count(void) const noexcept { return count_; }
 
         void release(T* p) {
             count_--;
@@ -74,8 +74,23 @@ namespace ptrs {
             return *this;
         }
 
+        T& operator*() const noexcept { return *data_; }
+        T* operator->() const noexcept { return data_; }
+        operator bool() const noexcept { return data_ != nullptr; }
+        // operator[] ?
+
         /* Modifiers */
-        
+        void reset(void) noexcept { ~shared_ptr(); } // correct ?
+
+        void swap(shared_ptr &r) noexcept {
+            std::swap(data_, r.data_);
+            std::swap(cb_, r.cb_);
+        }
+
+        /* Observers */
+        T* get(void) const noexcept { return data_; }
+        long use_count(void) const noexcept { return cb_ ? cb_->use_count() : 0; } // Correct ? what does "returns 0 if there is no managed object." exactly mean?
+        // owner_before()
         
     private:
         control_block *cb_;
@@ -88,8 +103,13 @@ namespace ptrs {
                 data_ = nullptr;
             }
         }
-
-
     };
+
+    // comparison operators, << operator
+    // make_shared
+    // allocate_shared ?
+    // casts to pointer ?
+    // get_deleter
+    // need to std::swap ?
 
 } /* ptrs */
