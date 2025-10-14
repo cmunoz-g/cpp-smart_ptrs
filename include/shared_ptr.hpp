@@ -1,30 +1,9 @@
 #pragma once
+#include <atomic>
 
 namespace ptrs {
-
-    template <typename T>
-    class control_block { // add: custom allocator, deleter ? weak ref count ?
-    private:
-        long count_;
-        //weak ref count_
-    public:
-        control_block(void) : count_(1) {}
-        long use_count(void) const noexcept { return count_; }
-
-        void release(T* p) {
-            count_--;
-            if (count_ == 0) {
-                delete p;
-                delete this;
-            }
-        }
-
-        void increment(void) const noexcept { count_++; } // change name to acquire() ?
-    };
-
     template <typename T>
     class shared_ptr { 
-
     public:
         /* Constructors */
         shared_ptr(void) constexpr noexcept : data_(nullptr) {}
@@ -40,11 +19,10 @@ namespace ptrs {
         }
 
         // copy constructor to convert other types ?
-        // alias constructor ?
         // constructor from weak_ptr
 
         /* Destructor */
-        ~shared_ptr(void) { release(); }
+        ~shared_ptr(void) { if (cb_) release_strong(); }
 
         /* Operators */
         shared_ptr& operator=(const shared_ptr &r) noexcept {
@@ -82,23 +60,25 @@ namespace ptrs {
         /* Modifiers */
         void reset(void) noexcept { ~shared_ptr(); } // correct ?
 
-        void swap(shared_ptr &r) noexcept {
+        void swap(shared_ptr &r) noexcept
+        {
             std::swap(data_, r.data_);
             std::swap(cb_, r.cb_);
         }
 
         /* Observers */
         T* get(void) const noexcept { return data_; }
-        long use_count(void) const noexcept { return cb_ ? cb_->use_count() : 0; } // Correct ? what does "returns 0 if there is no managed object." exactly mean?
+        long use_count(void) const noexcept { return cb_ ? cb_->use_strong_count() : 0; } // Correct ? what does "returns 0 if there is no managed object." exactly mean?
         // owner_before()
         
     private:
         control_block *cb_;
         T* data_;
 
-        void release(void) {
+        void release(void)
+        {
             if (cb_) {
-                cb_->release();
+                cb_->release_strong();
                 cb_ = nullptr;
                 data_ = nullptr;
             }
@@ -109,7 +89,6 @@ namespace ptrs {
     // make_shared
     // allocate_shared ?
     // casts to pointer ?
-    // get_deleter
     // need to std::swap ?
 
 } /* ptrs */
