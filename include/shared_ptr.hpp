@@ -1,5 +1,4 @@
 #pragma once
-#include <atomic>
 #include "control_block.hpp"
 
 namespace smart_ptrs {
@@ -7,24 +6,24 @@ namespace smart_ptrs {
     class shared_ptr { 
     public:
         /* Constructors */
-        shared_ptr(void) constexpr noexcept : data_(nullptr) {}
-        explicit shared_ptr(T* p) : data_(p), cb_(new control_block()) {}
+        constexpr shared_ptr(void) noexcept : data_(nullptr), cb_(nullptr) {}
+        explicit shared_ptr(T* p) : data_(p), cb_(new control_block_separate()) {}
         explicit shared_ptr(T* p, control_block *c) : data_(p), cb_(c) {}
         
         shared_ptr(const shared_ptr &r) noexcept {
             *this = r;
-            if (cb_) cb_->increment();
+            if (cb_) cb_->increment_strong();
         }
 
         shared_ptr(shared_ptr &&r) noexcept {
             *this = r;
         }
 
-        // copy constructor to convert other types ?
+        // copy constructor to convert other types ? !!! review implementation details on cppreference
         // constructor from weak_ptr
 
         /* Destructor */
-        ~shared_ptr(void) { if (cb_) release_strong(); }
+        ~shared_ptr() { if (cb_) cb_->release_strong(); }
 
         /* Operators */
         shared_ptr& operator=(const shared_ptr &r) noexcept {
@@ -38,11 +37,9 @@ namespace smart_ptrs {
 
         shared_ptr& operator=(shared_ptr &&r) noexcept {
             if (*this != r) {
-                r.release();
                 cb_ = r.cb_;
                 data_ = r.data_;
-                r.cb_ = nullptr;
-                r.data_ = nullptr;
+                // set r stuff to null, without changing count in the cb
             }
             return *this;
         }
@@ -60,7 +57,8 @@ namespace smart_ptrs {
         // operator[] ?
 
         /* Modifiers */
-        void reset(void) noexcept { ~shared_ptr(); } // correct ?
+        void reset(void) noexcept { ~shared_ptr(); } 
+        // add : another reset() that replaces the managed object
 
         void swap(shared_ptr &r) noexcept
         {
@@ -74,7 +72,7 @@ namespace smart_ptrs {
         // owner_before()
         
     private:
-        control_block *cb_;
+        control_block_base *cb_;
         T* data_;
 
         void release(void)
@@ -87,23 +85,11 @@ namespace smart_ptrs {
         }
     };
 
-    // problem with this is the deallocation in control_block
-    // if the shared_ptr was created with make_shared , we need to call the destructors of both data and ctrl_blokc
-    // but if not , it should be as it is now
-    // options : 
-    // let ctrl_block be only the counter, not in charge of deallocating, and have a flag so shared_ptr knows how to deallocate ?
-        // bc shared_ptr doesnt need a ref to void*block right ? bc it starts in cb
-    
-    // BEST APPROACH (i think) :
-    // ctrl_block subclasses ?i could do functions for decrementing the counts in the base class, then those ft call the destroy_data / destroy_this 
-    // and each subclass will call its defined one
-    
-    // let make_shared do two allocations
     template<typename T, typename... Args> 
     shared_ptr<T> make_shared(Args&& ... args) {
         void *block = ::operator new(sizeof(T) + sizeof(control_block));
         T* data = new(block + sizeof(controlblock)) T(std::forward<Args>(args)...);
-        control_block *cb = new(block) control_block();
+        control_block_adjacent *cb = new(block) control_block_adjacent();
         return shared_ptr(data, cb);
     }
 
@@ -111,6 +97,6 @@ namespace smart_ptrs {
     // make_shared
     // allocate_shared ?
     // casts to pointer ?
-    // need to std::swap ?
+    // need to std::swap ? diff between std::swap and swap method ?
 
 } /* smart_ptrs */

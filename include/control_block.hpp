@@ -1,8 +1,10 @@
 #pragma once
+#include <atomic>
+
 namespace smart_ptrs {
     template <typename T>
-    class control_block { 
-    private:
+    class control_block_base { 
+    protected:
         std::atomic<size_t> strong_count_(1);
         std::atomic<size_t> weak_count_(0);
 
@@ -17,29 +19,59 @@ namespace smart_ptrs {
 
     public:
         control_block(void) {}
+        virtual ~control_block(void) = default;
 
         long use_strong_count(void) const noexcept {
             return strong_count_.load(std::memory_order_acquire);
         }
         
+        // i think this is not needed
         long use_weak_count(void) const noexcept {
             return weak_count_.load(std::memory_order_acquire)
         }
 
-        void release_strong(T* p) {
+        virtual void release_strong(T* p) = 0;
+        virtual void release_weak(T* p) = 0;
+    };
+
+    template <typename T>
+    class control_block_separate final : public control_block_base {
+    public:
+        void release_strong(T* p) override {
             if (strong_count_.load(std::memory_order_acquire) == 1) {
                 delete p;
-                if (weak_count_.load(std::memory_order_acquire == 0)) {
+                if (weak_count_.load(std::memory_order_acquire) == 0) {
                     delete this;
                 }
             }
         }
 
-        void release_weak(T* p) {
+        void release_weak(T* p) override {
             if (weak_count_.load(std::memory_order_acquire) == 1 &&
-                strong_count_.load(std::memory_order_acquire) == 0) { 
+                strong_count_.load(std::memory_order_acquire) == 0) {
                     delete this;
+            }
+        }
+    };
+
+    template <typename T>
+    class control_block_adjacent final : public control_block_base {
+    public:
+        void release_strong(T* p) override {
+            if (strong_count_.load(std::memory_order_acquire) == 1) {
+                p->~T();
+                if (weak_count_.load(std::memory_order_acquire == 0)) {
+                    ::operator delete(this); // will this free everything (data + cb) ?
+                }
+            }
+        }
+
+        void release_weak(T* p) override {
+            if (weak_count_.load(std::memory_order_acquire) == 1 &&
+                strong_count_.load(std::memory_order_acquire) == 0) {
+                    ::operator delete(this);
                 }
         }
     };
+
 } /* smart_ptrs */
