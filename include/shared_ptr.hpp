@@ -1,13 +1,15 @@
 #pragma once
 #include <atomic>
+#include "control_block.hpp"
 
-namespace ptrs {
+namespace smart_ptrs {
     template <typename T>
     class shared_ptr { 
     public:
         /* Constructors */
         shared_ptr(void) constexpr noexcept : data_(nullptr) {}
         explicit shared_ptr(T* p) : data_(p), cb_(new control_block()) {}
+        explicit shared_ptr(T* p, control_block *c) : data_(p), cb_(c) {}
         
         shared_ptr(const shared_ptr &r) noexcept {
             *this = r;
@@ -85,10 +87,30 @@ namespace ptrs {
         }
     };
 
+    // problem with this is the deallocation in control_block
+    // if the shared_ptr was created with make_shared , we need to call the destructors of both data and ctrl_blokc
+    // but if not , it should be as it is now
+    // options : 
+    // let ctrl_block be only the counter, not in charge of deallocating, and have a flag so shared_ptr knows how to deallocate ?
+        // bc shared_ptr doesnt need a ref to void*block right ? bc it starts in cb
+    
+    // BEST APPROACH (i think) :
+    // ctrl_block subclasses ?i could do functions for decrementing the counts in the base class, then those ft call the destroy_data / destroy_this 
+    // and each subclass will call its defined one
+    
+    // let make_shared do two allocations
+    template<typename T, typename... Args> 
+    shared_ptr<T> make_shared(Args&& ... args) {
+        void *block = ::operator new(sizeof(T) + sizeof(control_block));
+        T* data = new(block + sizeof(controlblock)) T(std::forward<Args>(args)...);
+        control_block *cb = new(block) control_block();
+        return shared_ptr(data, cb);
+    }
+
     // comparison operators, << operator
     // make_shared
     // allocate_shared ?
     // casts to pointer ?
     // need to std::swap ?
 
-} /* ptrs */
+} /* smart_ptrs */

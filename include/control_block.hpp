@@ -1,5 +1,5 @@
 #pragma once
-namespace ptrs {
+namespace smart_ptrs {
     template <typename T>
     class control_block { 
     private:
@@ -42,4 +42,4 @@ namespace ptrs {
                 }
         }
     };
-} /* ptrs */
+} /* smart_ptrs */
