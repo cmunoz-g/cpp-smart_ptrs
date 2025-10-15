@@ -1,5 +1,6 @@
 #pragma once
 #include "control_block.hpp"
+#include "shared_ptr.hpp"
 
 namespace smart_ptrs {
     template <typename T>
@@ -40,14 +41,30 @@ namespace smart_ptrs {
         }
 
         /* Modifiers */
-        // reset
-        // swap
+        void reset() noexcept { release(); }
+        
+        void swap(weak_ptr& r) noexcept {
+            std::swap(cb_, r._cb);
+            std::swap(data_, r._data);
+        } 
 
         /* Observers */
-        // use count
-        // expired
-        // lock
-        // owner_before
+        long use_count(void) const noexcept { return cb_ ? cb_->use_strong_count() : 0; }
+        bool expired(void) const noexcept { return use_count() == 0; }
+        
+        shared_ptr<T> lock() const noexcept {
+            return expired() ? shared_ptr<T>() : shared_ptr<T>(*this);
+        }
+        
+        template<class Y>
+        bool owner_before(const weak_ptr<Y>& other) const noexcept {
+            return cb_ < other.cb_;
+        }
+
+        template<class Y>
+        bool owner_before(const shared_ptr<Y>& other) const noexcept {
+            return cb_ < other.cb_;
+        }
 
     private:
         T* data_;
@@ -60,6 +77,6 @@ namespace smart_ptrs {
                 data_ = nullptr;
             }
         }
-    }
+    };
 
 }; /* smart_ptrs */

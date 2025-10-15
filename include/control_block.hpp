@@ -30,6 +30,8 @@ namespace smart_ptrs {
             return weak_count_.load(std::memory_order_acquire)
         }
 
+        // for both this functions: can we check two counters atomically ?
+        // check notes on TODO
         virtual void release_strong(T* p) = 0;
         virtual void release_weak(T* p) = 0;
     };

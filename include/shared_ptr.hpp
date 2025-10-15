@@ -1,5 +1,6 @@
 #pragma once
 #include "control_block.hpp"
+#include "weak_ptr.hpp"
 
 namespace smart_ptrs {
     template <typename T>
@@ -19,10 +20,15 @@ namespace smart_ptrs {
             *this = r;
         }
 
+        template<typename Y>
+        explicit shared_ptr(const weak_ptr<Y>& r) { // review
+            shared_ptr(r.data_, r.cb_); 
+        }
+
         // copy constructor to convert other types ? !!! review implementation details on cppreference
-        // constructor from weak_ptr
 
         /* Destructor */
+        // doubt: why not just call release()
         ~shared_ptr() { if (cb_) cb_->release_strong(); }
 
         /* Operators */
@@ -57,10 +63,10 @@ namespace smart_ptrs {
         // operator[] ?
 
         /* Modifiers */
-        void reset(void) noexcept { ~shared_ptr(); } 
+        void reset(void) noexcept { release(); } 
         // add : another reset() that replaces the managed object
 
-        void swap(shared_ptr &r) noexcept
+        void swap(shared_ptr &r) noexcept // check implementation
         {
             std::swap(data_, r.data_);
             std::swap(cb_, r.cb_);
@@ -69,7 +75,16 @@ namespace smart_ptrs {
         /* Observers */
         T* get(void) const noexcept { return data_; }
         long use_count(void) const noexcept { return cb_ ? cb_->use_strong_count() : 0; } // Correct ? what does "returns 0 if there is no managed object." exactly mean?
-        // owner_before()
+        
+        template<typename Y>
+        bool owner_before(const shared_ptr<Y> &other) const noexcept {
+            return cb_ < other.cb_;
+        }
+
+        template<typename Y>
+        bool owner_before(const weak_ptr<Y> &other) const noexcept {
+            return cb_ < other.cb_;
+        }
         
     private:
         control_block_base *cb_;
