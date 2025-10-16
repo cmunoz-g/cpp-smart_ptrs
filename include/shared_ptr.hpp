@@ -3,43 +3,65 @@
 #include "weak_ptr.hpp"
 
 namespace smart_ptrs {
-    template <typename T>
+    template<typename T>
     class shared_ptr { 
     public:
         /* Constructors */
         constexpr shared_ptr() noexcept : data_(nullptr), cb_(nullptr) {}
+        constexpr shared_ptr(std::nullptr_t) noexcept : data_(nullptr), cb_(nullptr) {}
         
-        explicit shared_ptr(T* p) : data_(p), cb_(new control_block_separate()) {
-            if constexpr(std::is_base_of_v<enable_shared_from_this<T>, T>) {
-                enable_shared_from_this<T>&base = *p;
+        template<typename Y>
+        explicit shared_ptr(Y* p) : data_(p), cb_(new control_block_separate()) {
+            if constexpr(std::is_base_of_v<enable_shared_from_this<Y>, Y>) {
+                enable_shared_from_this<Y>&base = *p;
+                p.weak_this = *this;
+            }
+        }
+
+        template<typename Y>
+        explicit shared_ptr(Y* p, control_block* c) : data_(p), cb_(c) {
+            if constexpr(std::is_base_of_v<enable_shared_from_this<Y>, Y>) {
+                enable_shared_from_this<Y>&base = *p;
                 p.weak_this = *this;
             }
         }
         
-        explicit shared_ptr(T* p, control_block *c) : data_(p), cb_(c) {} // does this need the enable_shared_from_this ?
-        
-        shared_ptr(const shared_ptr &r) noexcept {
+        shared_ptr(const shared_ptr& r) noexcept {
             *this = r;
             if (cb_) cb_->increment_strong();
         }
 
-        shared_ptr(shared_ptr &&r) noexcept {
-            //
+        template<typename Y>
+        shared_ptr(const shared_ptr<Y>& r) noexcept {
+            *this = r;
+            if (cb_) cb_->increment_strong();
+        }
+
+        shared_ptr(shared_ptr&& r) noexcept {
+            data_ = r.data_;
+            cb_ = r.cb_;
+            r.data_ = nullptr;
+            r.cb_ = nullptr;
         }
 
         template<typename Y>
-        explicit shared_ptr(const weak_ptr<Y>& r) { // review
-            shared_ptr(r.data_, r.cb_); 
+        shared_ptr(shared_ptr<Y>&& r) noexcept {
+            data_ = r.data_;
+            cb_ = r.cb_;
+            r.data_ = nullptr;
+            r.cb_ = nullptr;
         }
 
-        // copy constructor to convert other types ? !!! review implementation details on cppreference
+        template<typename Y>
+        explicit shared_ptr(const weak_ptr<Y>& r) data_(r.data_), cb_(r.cb_) {}
+
+        // Should I add the aliasing constructor ?
 
         /* Destructor */
-        // doubt: why not just call release()
-        ~shared_ptr() { if (cb_) cb_->release_strong(); }
+        ~shared_ptr() { release(); }
 
         /* Operators */
-        shared_ptr& operator=(const shared_ptr &r) noexcept {
+        shared_ptr& operator=(const shared_ptr& r) noexcept {
             if (*this != r) {
                 release();
                 cb_ = r.cb_;
@@ -48,11 +70,12 @@ namespace smart_ptrs {
             return *this;
         }
 
-        shared_ptr& operator=(shared_ptr &&r) noexcept {
+        shared_ptr& operator=(shared_ptr&& r) noexcept {
             if (*this != r) {
                 cb_ = r.cb_;
                 data_ = r.data_;
-                // set r stuff to null, without changing count in the cb . maybe i can call swap ?
+                r.cb_ = nullptr;
+                r.data_ = nullptr;
             }
             return *this;
         }
@@ -67,7 +90,7 @@ namespace smart_ptrs {
         T& operator*() const noexcept { return *data_; }
         T* operator->() const noexcept { return data_; }
         operator bool() const noexcept { return data_ != nullptr; }
-        // operator[] ?
+        T& operator[](std::ptrdiff_t idx) const noexcept { return data[idx]; }
 
         /* Modifiers */
         void reset() noexcept { release(); } 
