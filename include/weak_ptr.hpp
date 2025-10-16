@@ -7,7 +7,7 @@ namespace smart_ptrs {
     class weak_ptr {
     public:
         /* Constructors */
-        constexpr weak_ptr(void) noexcept : data_(nullptr), cb_(nullptr) {}
+        constexpr weak_ptr() noexcept : data_(nullptr), cb_(nullptr) {}
         
         weak_ptr(const weak_ptr& r) noexcept {
             *this = r;
@@ -49,8 +49,8 @@ namespace smart_ptrs {
         } 
 
         /* Observers */
-        long use_count(void) const noexcept { return cb_ ? cb_->use_strong_count() : 0; }
-        bool expired(void) const noexcept { return use_count() == 0; }
+        long use_count() const noexcept { return cb_ ? cb_->use_strong_count() : 0; }
+        bool expired() const noexcept { return use_count() == 0; }
         
         shared_ptr<T> lock() const noexcept {
             return expired() ? shared_ptr<T>() : shared_ptr<T>(*this);
@@ -70,7 +70,7 @@ namespace smart_ptrs {
         T* data_;
         control_block_base *cb_;
 
-        void release(void) {
+        void release() {
             if (cb_) {
                 cb_->release_weak();
                 cb_ = nullptr;

@@ -7,7 +7,7 @@ namespace smart_ptrs {
     class shared_ptr { 
     public:
         /* Constructors */
-        constexpr shared_ptr(void) noexcept : data_(nullptr), cb_(nullptr) {}
+        constexpr shared_ptr() noexcept : data_(nullptr), cb_(nullptr) {}
         explicit shared_ptr(T* p) : data_(p), cb_(new control_block_separate()) {}
         explicit shared_ptr(T* p, control_block *c) : data_(p), cb_(c) {}
         
@@ -63,7 +63,7 @@ namespace smart_ptrs {
         // operator[] ?
 
         /* Modifiers */
-        void reset(void) noexcept { release(); } 
+        void reset() noexcept { release(); } 
         // add : another reset() that replaces the managed object
 
         void swap(shared_ptr &r) noexcept // check implementation
@@ -73,8 +73,8 @@ namespace smart_ptrs {
         }
 
         /* Observers */
-        T* get(void) const noexcept { return data_; }
-        long use_count(void) const noexcept { return cb_ ? cb_->use_strong_count() : 0; } // Correct ? what does "returns 0 if there is no managed object." exactly mean?
+        T* get() const noexcept { return data_; }
+        long use_count() const noexcept { return cb_ ? cb_->use_strong_count() : 0; } // Correct ? what does "returns 0 if there is no managed object." exactly mean?
         
         template<typename Y>
         bool owner_before(const shared_ptr<Y> &other) const noexcept {
@@ -90,7 +90,7 @@ namespace smart_ptrs {
         control_block_base *cb_;
         T* data_;
 
-        void release(void)
+        void release()
         {
             if (cb_) {
                 cb_->release_strong();

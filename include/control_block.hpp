@@ -9,24 +9,24 @@ namespace smart_ptrs {
         std::atomic<size_t> weak_count_(0);
 
         /* Increments, Decrements */
-        void increment_strong(void) noexcept { 
+        void increment_strong() noexcept { 
             strong_count_.fetch_add(1, std::memory_order_relaxed);
         }
 
-        void increment_weak(void) noexcept {
+        void increment_weak() noexcept {
             weak_count_.fetch_add(1, std::memory_order_relaxed);
         }
 
     public:
-        control_block(void) {}
-        virtual ~control_block(void) = default;
+        control_block() {}
+        virtual ~control_block() = default;
 
-        long use_strong_count(void) const noexcept {
+        long use_strong_count() const noexcept {
             return strong_count_.load(std::memory_order_acquire);
         }
         
         // i think this is not needed
-        long use_weak_count(void) const noexcept {
+        long use_weak_count() const noexcept {
             return weak_count_.load(std::memory_order_acquire)
         }
 
