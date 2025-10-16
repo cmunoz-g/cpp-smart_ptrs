@@ -8,8 +8,15 @@ namespace smart_ptrs {
     public:
         /* Constructors */
         constexpr shared_ptr() noexcept : data_(nullptr), cb_(nullptr) {}
-        explicit shared_ptr(T* p) : data_(p), cb_(new control_block_separate()) {}
-        explicit shared_ptr(T* p, control_block *c) : data_(p), cb_(c) {}
+        
+        explicit shared_ptr(T* p) : data_(p), cb_(new control_block_separate()) {
+            if constexpr(std::is_base_of_v<enable_shared_from_this<T>, T>) {
+                enable_shared_from_this<T>&base = *p;
+                p.weak_this = *this;
+            }
+        }
+        
+        explicit shared_ptr(T* p, control_block *c) : data_(p), cb_(c) {} // does this need the enable_shared_from_this ?
         
         shared_ptr(const shared_ptr &r) noexcept {
             *this = r;

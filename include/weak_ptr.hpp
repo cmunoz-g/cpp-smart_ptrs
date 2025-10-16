@@ -17,6 +17,13 @@ namespace smart_ptrs {
         weak_ptr(weak_ptr&& r) noexcept {
             //
         }
+
+        template<class Y>
+        weak_ptr(const shared_ptr<Y>& r) noexcept {
+            cb_ = r.cb_;
+            data_ = r.data_;
+            if (cb_) cb_->increment_weak();
+        }
         // templated constructors ?
 
         /* Destructor */
