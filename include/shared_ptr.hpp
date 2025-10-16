@@ -17,7 +17,7 @@ namespace smart_ptrs {
         }
 
         shared_ptr(shared_ptr &&r) noexcept {
-            *this = r;
+            //
         }
 
         template<typename Y>
@@ -45,7 +45,7 @@ namespace smart_ptrs {
             if (*this != r) {
                 cb_ = r.cb_;
                 data_ = r.data_;
-                // set r stuff to null, without changing count in the cb
+                // set r stuff to null, without changing count in the cb . maybe i can call swap ?
             }
             return *this;
         }

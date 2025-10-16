@@ -15,7 +15,7 @@ namespace smart_ptrs {
         }
 
         weak_ptr(weak_ptr&& r) noexcept {
-            *this = r;
+            //
         }
         // templated constructors ?
 
@@ -79,4 +79,4 @@ namespace smart_ptrs {
         }
     };
 
-}; /* smart_ptrs */
+} /* smart_ptrs */
