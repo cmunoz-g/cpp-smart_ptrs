@@ -1,6 +1,8 @@
 #pragma once
 #include "control_block.hpp"
 #include "weak_ptr.hpp"
+#include <compare>
+#include <ostream>
 
 namespace smart_ptrs {
     template<typename T>
@@ -28,13 +30,17 @@ namespace smart_ptrs {
         
         shared_ptr(const shared_ptr& r) noexcept {
             *this = r;
-            if (cb_) cb_->increment_strong();
+            if (cb_) {
+                cb_->increment_strong();
+            }
         }
 
         template<typename Y>
         shared_ptr(const shared_ptr<Y>& r) noexcept {
             *this = r;
-            if (cb_) cb_->increment_strong();
+            if (cb_) {
+                cb_->increment_strong();
+            }
         }
 
         shared_ptr(shared_ptr&& r) noexcept {
@@ -53,7 +59,11 @@ namespace smart_ptrs {
         }
 
         template<typename Y>
-        explicit shared_ptr(const weak_ptr<Y>& r) data_(r.data_), cb_(r.cb_) {}
+        explicit shared_ptr(const weak_ptr<Y>& r) data_(r.data_), cb_(r.cb_) {
+            if (cb_) {
+                cb_->increment_strong();
+            }
+        }
 
         // Should I add the aliasing constructor ?
 
@@ -94,9 +104,18 @@ namespace smart_ptrs {
 
         /* Modifiers */
         void reset() noexcept { release(); } 
-        // add : another reset() that replaces the managed object
+        
+        template<typename Y>
+        void reset(Y* ptr) {
+            release();
+            data_ = Y.data_;
+            cb_ = cb.data_;
+            if (cb_) {
+                cb_->increment_strong();
+            }
+        }
 
-        void swap(shared_ptr &r) noexcept // check implementation
+        void swap(shared_ptr &r) noexcept 
         {
             std::swap(data_, r.data_);
             std::swap(cb_, r.cb_);
@@ -104,7 +123,7 @@ namespace smart_ptrs {
 
         /* Observers */
         T* get() const noexcept { return data_; }
-        long use_count() const noexcept { return cb_ ? cb_->use_strong_count() : 0; } // Correct ? what does "returns 0 if there is no managed object." exactly mean?
+        long use_count() const noexcept { return cb_ ? cb_->use_strong_count() : 0; }
         
         template<typename Y>
         bool owner_before(const shared_ptr<Y> &other) const noexcept {
@@ -138,10 +157,33 @@ namespace smart_ptrs {
         return shared_ptr(data, cb);
     }
 
-    // comparison operators, << operator
-    // make_shared
-    // allocate_shared ?
-    // casts to pointer ?
-    // need to std::swap ? diff between std::swap and swap method ?
+    /* Operators */
+    template<typename T, typename U>
+    bool operator==(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept {
+        return lhs.get() == rhs.get();
+    }
+    
+    template<typename T, typename U>
+    std::strong_ordering operator<=>(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept {
+        return std::compare_three_way{}(lhs.get(), rhs.get());
+    }
+
+    template<typename T>
+    bool operator==(const shared_ptr<T>& lhs, std::nullptr_t) noexcept {
+        return !lhs;
+    }
+
+    template<typename T>
+    std::strong_ordering operator<=>(const shared_ptr<T>& lhs, std::nullptr_t) noexcept {
+        std::compare_three_way{}(x.get(), static_cast<T*>(nullptr));
+    }
+
+    template<typename T, typename U, typename V>
+    std::basic_ostream<U, V>& operator<<(std::basic_ostream<U, V>& os, const shared_ptr<T>& ptr) {
+        return os << ptr.get();
+    }
+
+    /* Casts */
+    // ?
 
 } /* smart_ptrs */
