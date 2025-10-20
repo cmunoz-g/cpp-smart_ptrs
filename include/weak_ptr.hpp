@@ -14,8 +14,25 @@ namespace smart_ptrs {
             if (cb_) cb_->increment_weak();
         }
 
+        template<typename Y>
+        weak_ptr(const weak_ptr<Y>& r) noexcept {
+            *this = r;
+            if (cb_) cb_->increment_weak();
+        }
+
         weak_ptr(weak_ptr&& r) noexcept {
-            //
+            data_ = r.data_;
+            cb_ = r.cb_;
+            r.data_ = nullptr;
+            r.cb_ = nullptr;
+        }
+
+        template<typename Y>
+        weak_ptr(const weak_ptr<Y>&& r) noexcept {
+            data_ = r.data_;
+            cb_ = r.cb_;
+            r.data_ = nullptr;
+            r.cb_ = nullptr;
         }
 
         template<class Y>
@@ -24,7 +41,6 @@ namespace smart_ptrs {
             data_ = r.data_;
             if (cb_) cb_->increment_weak();
         }
-        // templated constructors ?
 
         /* Destructor */
         ~weak_ptr() {if (cb_) cb_->release_weak(); }
@@ -43,7 +59,8 @@ namespace smart_ptrs {
             if (*this != r) {
                 cb_ = r.cb_;
                 data_ = r.data_;
-                // set r stuff to null, without changing count in the cb
+                r.data_ = nullptr;
+                r.cb_ = nullptr;
             }
         }
 

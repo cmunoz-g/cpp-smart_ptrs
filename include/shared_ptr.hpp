@@ -59,7 +59,12 @@ namespace smart_ptrs {
         }
 
         template<typename Y>
-        explicit shared_ptr(const weak_ptr<Y>& r) data_(r.data_), cb_(r.cb_) {
+        explicit shared_ptr(const weak_ptr<Y>& r) {
+            if (r.expired()) {
+                throw new bad_weak_ptr();
+            }
+            data_ = r.data_;
+            cb_ = r.cb_;
             if (cb_) {
                 cb_->increment_strong();
             }
@@ -185,5 +190,13 @@ namespace smart_ptrs {
 
     /* Casts */
     // ?
+
+    /* Exceptions */
+    class bad_weak_ptr : public std::exception {
+    public:
+        const char* what() const noexcept override {
+            return "Object ";
+        }
+    };
 
 } /* smart_ptrs */

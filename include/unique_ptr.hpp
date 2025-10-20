@@ -1,4 +1,6 @@
 #pragma once
+#include <type_traits>
+#include <compare>
 
 namespace smart_ptrs
 {
@@ -26,7 +28,6 @@ namespace smart_ptrs
     unique_ptr& operator=(unique_ptr&& r) noexcept {
         if (*this != r) {
             delete_raw_pointer();
-            // Some implementations use std::exchange for the 2 lines below
             this->data_ = r.data_;
             r.data_ = nullptr;
         }
@@ -71,7 +72,7 @@ namespace smart_ptrs
     private:
     T* data_;
 
-    /* in case i want to add custom deleters, this is where it would call it*/
+    /* This ft calls the custom Deleter*/
     void delete_raw_pointer() {
         if (data_) {
             delete data_;
@@ -104,7 +105,6 @@ namespace smart_ptrs
         unique_ptr& operator=(unique_ptr&& r) noexcept {
             if (*this != r) {
                 delete_raw_pointer();
-                // Some implementations use std::exchange for the 2 lines below
                 this->data_ = r.data_;
                 r.data_ = nullptr;
             }
@@ -157,7 +157,22 @@ namespace smart_ptrs
         }
     };
 
-    // make_unique
-    // operator overloads
+    /* make_unique */
+    /* Single-object*/
+    template<typename T>
+    requires (!std::is_array_v<T>)
+    unique_ptr<T> make_unique_for_overwrite() {
+        return unique_ptr<T>(new T);
+    }
+
+    /* Array*/
+    template<typename T>
+    requires (std::is_unbounded_array_v<T>)
+    unique_ptr<T> make_unique_for_overwrite(std::size_t n) {
+        return unique_ptr<T>(new std::remove_extent_t<T>[n]);
+    }
+
+    /* Operators */
+    // Add after Deleter
     
 } /* smart_ptrs */

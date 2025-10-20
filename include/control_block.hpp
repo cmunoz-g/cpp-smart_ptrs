@@ -24,14 +24,8 @@ namespace smart_ptrs {
         long use_strong_count() const noexcept {
             return strong_count_.load(std::memory_order_acquire);
         }
-        
-        // i think this is not needed
-        long use_weak_count() const noexcept {
-            return weak_count_.load(std::memory_order_acquire)
-        }
 
-        // for both this functions: can we check two counters atomically ?
-        // check notes on TODO
+        /* Both of these are wrong, there should be only one atomic operation*/
         virtual void release_strong(T* p) = 0;
         virtual void release_weak(T* p) = 0;
     };
